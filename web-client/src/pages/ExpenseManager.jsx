@@ -1,54 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiSettings, FiList } from "react-icons/fi";
 import EditCard from "../components/EditCard";
+import { getExpenses, deleteExpense, updateExpense } from "../services/api";
 
 const ExpenseManager = () => {
-  const [expenses, setExpenses] = useState([
-    {
-      category: "Bills",
-      amount: 1000,
-      date: "2025-05-05",
-      note: "Electric bills",
-    },
-    {
-      category: "Groceries",
-      amount: 750,
-      date: "2025-05-04",
-      note: "Weekly shopping",
-    },
-    {
-      category: "Transport",
-      amount: 300,
-      date: "2025-05-03",
-      note: "Gas refill",
-    },
-    {
-      category: "Transport",
-      amount: 300,
-      date: "2025-05-03",
-      note: "Gas refill",
-    },
-    {
-      category: "Transport",
-      amount: 300,
-      date: "2025-05-03",
-      note: "Gas refill",
-    },
-    {
-      category: "Transport",
-      amount: 300,
-      date: "2025-05-03",
-      note: "Gas refill",
-    },
-  ]);
-
+  const [expenses, setExpenses] = useState([]);
   const [editingExpense, setEditingExpense] = useState(null);
   const [sortCategory, setSortCategory] = useState("All");
   const [sortOption, setSortOption] = useState("");
 
-  const handleDelete = (index) => {
-    const updated = expenses.filter((_, i) => i !== index);
-    setExpenses(updated);
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const fetchExpenses = async () => {
+    try {
+      const response = await getExpenses();
+      const data = response.data;
+      setExpenses(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch expenses:", err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirm = window.confirm("Are you sure you want to delete this expense?");
+    if (!confirm) return;
+
+    try {
+      await deleteExpense(id);
+      setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  const handleSaveEdit = async (updatedExpense) => {
+    try {
+      await updateExpense(updatedExpense.id, updatedExpense);
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === updatedExpense.id ? updatedExpense : exp))
+      );
+      setEditingExpense(null);
+    } catch (err) {
+      console.error("Update failed:", err);
+    }
   };
 
   const getSortedExpenses = () => {
@@ -65,9 +61,9 @@ const ExpenseManager = () => {
     } else if (sortOption === "amountDesc") {
       filtered.sort((a, b) => b.amount - a.amount);
     } else if (sortOption === "dateAsc") {
-      filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+      filtered.sort((a, b) => new Date(a.expense_date) - new Date(b.expense_date));
     } else if (sortOption === "dateDesc") {
-      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      filtered.sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
     }
 
     return filtered;
@@ -81,19 +77,15 @@ const ExpenseManager = () => {
       </h1>
       <hr className="border-t-2 border-[#443627] mb-6" />
 
-      {/* Card */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-lg">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
-          {/* Title */}
           <div className="flex items-center">
             <FiSettings className="text-2xl mr-2" />
             <h2 className="text-xl font-bold">Manage</h2>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center">
-            {/* Category sort */}
               <label className="font-medium mr-2">Sort by Category:</label>
               <select
                 value={sortCategory}
@@ -106,11 +98,12 @@ const ExpenseManager = () => {
                 <option value="Transport">Transport</option>
                 <option value="Food">Food</option>
                 <option value="Shopping">Shopping</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Others">Others</option>
               </select>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                {/* Sort, date and amount */}
               <label className="font-medium mr-2">Filter:</label>
               <select
                 value={sortOption}
@@ -127,7 +120,6 @@ const ExpenseManager = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <div className="overflow-y-auto max-h-[350px]">
             <table className="min-w-full text-left text-sm md:text-base">
@@ -141,27 +133,25 @@ const ExpenseManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {getSortedExpenses().map((expense, index) => (
+                {getSortedExpenses().map((expense) => (
                   <tr
-                    key={index}
-                    className={
-                      index % 2 === 0 ? "bg-[#EBE9E9]" : "bg-[#D9D9D9]"
-                    }
+                    key={expense.id}
+                    className={expense.id % 2 === 0 ? "bg-[#EBE9E9]" : "bg-[#D9D9D9]"}
                   >
                     <td className="p-3">{expense.category}</td>
-                    <td className="p-3">₱{expense.amount.toFixed(2)}</td>
-                    <td className="p-3">{expense.date}</td>
-                    <td className="p-3">{expense.note}</td>
+                    <td className="p-3">₱{Number(expense.amount).toFixed(2)}</td>
+                    <td className="p-3">{new Date(expense.expense_date).toLocaleDateString()}</td>
+                    <td className="p-3">{expense.description}</td>
                     <td className="p-3 space-y-1 sm:space-x-2 sm:space-y-0 flex flex-col sm:flex-row">
                       <button
                         className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                        onClick={() => setEditingExpense({ ...expense, index })}
+                        onClick={() => setEditingExpense(expense)}
                       >
                         Edit
                       </button>
                       <button
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        onClick={() => handleDelete(index)}
+                        onClick={() => handleDelete(expense.id)}
                       >
                         Delete
                       </button>
@@ -174,17 +164,11 @@ const ExpenseManager = () => {
         </div>
       </div>
 
-      {/* Edit card */}
       {editingExpense && (
         <EditCard
           expense={editingExpense}
           onClose={() => setEditingExpense(null)}
-          onSave={(updated) => {
-            const updatedExpenses = [...expenses];
-            updatedExpenses[editingExpense.index] = updated;
-            setExpenses(updatedExpenses);
-            setEditingExpense(null);
-          }}
+          onSave={handleSaveEdit}
         />
       )}
     </div>

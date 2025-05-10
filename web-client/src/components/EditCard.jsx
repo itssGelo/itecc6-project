@@ -2,7 +2,11 @@ import React from "react";
 import { FiCreditCard } from "react-icons/fi";
 
 const EditCard = ({ expense, onClose, onSave }) => {
-  const [editedExpense, setEditedExpense] = React.useState(expense);
+  
+  const [editedExpense, setEditedExpense] = React.useState({
+    ...expense,
+    expense_date: new Date(expense.expense_date).toLocaleDateString("en-CA"), 
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -11,7 +15,10 @@ const EditCard = ({ expense, onClose, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(editedExpense);
+    onSave({
+      ...editedExpense,
+      expense_date: new Date(editedExpense.expense_date).toISOString(), 
+    });
   };
 
   return (
@@ -27,8 +34,8 @@ const EditCard = ({ expense, onClose, onSave }) => {
               <label className="block font-semibold mb-1">Date</label>
               <input
                 type="date"
-                name="date"
-                value={editedExpense.date}
+                name="expense_date"
+                value={editedExpense.expense_date}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded px-3 py-2"
               />
@@ -46,6 +53,8 @@ const EditCard = ({ expense, onClose, onSave }) => {
                 <option value="Transport">Transport</option>
                 <option value="Food">Food</option>
                 <option value="Shopping">Shopping</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Others">Others</option>
               </select>
             </div>
             <div>
@@ -61,8 +70,8 @@ const EditCard = ({ expense, onClose, onSave }) => {
             <div>
               <label className="block font-semibold mb-1">Note</label>
               <textarea
-                name="note"
-                value={editedExpense.note}
+                name="description"
+                value={editedExpense.description}
                 onChange={handleChange}
                 className="w-full bg-[#F4F2F2] border border-gray-300 rounded px-3 py-2"
               />

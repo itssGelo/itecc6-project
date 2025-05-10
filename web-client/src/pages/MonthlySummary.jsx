@@ -1,67 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiBarChart2, FiBarChart } from "react-icons/fi";
-
-const mockExpenses = [
-  {
-    category: "Food",
-    date: "2025-05-01",
-    amount: "150.00",
-    note: "Lunch",
-  },
-  {
-    category: "Transport",
-    date: "2025-05-02",
-    amount: "80.00",
-    note: "Bus fare",
-  },
-  {
-    category: "Shopping",
-    date: "2025-04-25",
-    amount: "500.00",
-    note: "Clothes",
-  },
-  {
-    category: "Bills",
-    date: "2025-04-22",
-    amount: "1200.00",
-    note: "Electricity",
-  },
-  {
-    category: "Groceries",
-    date: "2025-04-20",
-    amount: "750.00",
-    note: "Weekly stock",
-  },
-  {
-    category: "Food",
-    date: "2025-04-15",
-    amount: "200.00",
-    note: "Dinner",
-  },
-  {
-    category: "Food",
-    date: "2025-04-15",
-    amount: "200.00",
-    note: "Dinner",
-  },
-];
+import { getExpenses } from "../services/api"; 
 
 const MonthlySummary = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [amountSort, setAmountSort] = useState("");
+  const [expenses, setExpenses] = useState([]);
 
-  let filteredExpenses = mockExpenses.filter((expense) => {
-    const expenseDate = new Date(expense.date);
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
-    return (
-      (!start || expenseDate >= start) &&
-      (!end || expenseDate <= end) &&
-      (!categoryFilter || expense.category === categoryFilter)
-    );
-  });
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const fetchExpenses = async () => {
+    try {
+      const response = await getExpenses();
+      const data = response.data;
+      setExpenses(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch expenses:", err);
+    }
+  };
+
+  let filteredExpenses = expenses.filter((expense) => {
+  const rawDate = expense.expense_date;
+  const expenseDate = new Date(rawDate); 
+  const start = startDate ? new Date(startDate + "T00:00:00") : null;
+  const end = endDate ? new Date(endDate + "T23:59:59") : null;
+
+  return (
+    (!start || expenseDate >= start) &&
+    (!end || expenseDate <= end) &&
+    (!categoryFilter || expense.category === categoryFilter)
+  );
+});
 
   if (amountSort === "low") {
     filteredExpenses.sort((a, b) => parseFloat(a.amount) - parseFloat(b.amount));
@@ -91,7 +64,6 @@ const MonthlySummary = () => {
             <h2 className="text-xl font-bold">Summary</h2>
           </div>
 
-            
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 items-start">
             {/* Filter date */}
             <label className="font-semibold">From:</label>
@@ -152,9 +124,9 @@ const MonthlySummary = () => {
                   className={index % 2 === 0 ? "bg-[#EBE9E9]" : "bg-[#D9D9D9]"}
                 >
                   <td className="p-3">{expense.category}</td>
-                  <td className="p-3">{expense.date}</td>
+                  <td className="p-3">{new Date(expense.expense_date).toLocaleDateString()}</td>
                   <td className="p-3">₱{parseFloat(expense.amount).toFixed(2)}</td>
-                  <td className="p-3">{expense.note || "-"}</td>
+                  <td className="p-3">{expense.description || "-"}</td>
                 </tr>
               ))}
             </tbody>
