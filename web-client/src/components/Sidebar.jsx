@@ -1,11 +1,11 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom"; // 🆕 added useLocation
+import { Link, useLocation } from "react-router-dom"; 
 import { FiHome, FiCreditCard, FiPlusCircle, FiList, FiBarChart2, FiLogOut } from "react-icons/fi";
 
 function Sidebar() {
-  const location = useLocation(); // 🆕 get current path
+  const location = useLocation(); 
 
-  // 🆕 Don't render Sidebar on the startup page
+  
   if (location.pathname === "/") {
     return null;
   }
